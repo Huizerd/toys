@@ -199,3 +199,70 @@ def fov_2d_speed_circle(
         data.append(x)
         labels.append(y / pattern_speed_scale)
     return data, labels
+
+
+def fov_2d_speed_checkerboard_sample(side, length, max_seg_length, pattern_speeds):
+    # random-length segments
+    def segmentation(i):
+        while i > 0:
+            n = random.randint(1, min(i, max_seg_length))
+            yield n
+            i -= n
+
+    seg_lengths = list(segmentation(length))
+    random.shuffle(seg_lengths)
+
+    # random speeds
+    speeds_h = np.random.choice(pattern_speeds, size=len(seg_lengths))
+    speeds_w = np.random.choice(pattern_speeds, size=len(seg_lengths))
+    speeds_h = np.repeat(speeds_h, seg_lengths)
+    speeds_w = np.repeat(speeds_w, seg_lengths)
+
+    # size of squares
+    size = np.random.randint(4, side // 3)
+
+    # integrate to positions (top left corner)
+    start_h = np.random.randint(0, size)
+    start_w = np.random.randint(0, size)
+    pos_h = (start_h + np.cumsum(speeds_h)) % (size * 2)  # size because repeating anyway
+    pos_w = (start_w + np.cumsum(speeds_w)) % (size * 2)  # size because repeating anyway
+
+    # draw checkerboard that is one square bigger than the field of view
+    times = int(np.ceil(side / size) + 2)
+    board = np.zeros((times, times), dtype=np.float32)
+    board[1::2, ::2] = 1
+    board[::2, 1::2] = 1
+    board = np.kron(board, np.ones((size, size), dtype=np.float32))
+
+    # draw checkerboard
+    example = []
+    for h, w in zip(pos_h, pos_w):
+        noisy_board = board[h : side + h, w : side + w] + np.random.randn(side, side) * 0.1
+        example.append(noisy_board)
+
+    return np.stack(example).astype(np.float32), np.stack([speeds_h, speeds_w], axis=-1).astype(np.float32)
+
+
+def fov_2d_speed_checkerboard(
+    side, length, size=100, max_seg_length=20, pattern_speeds=[-2, -1, 0, 1, 2], pattern_speed_scale=10
+):
+    """
+    toy problem with a moving checkerboard, of which the vertical and horizontal speed (px/step) should be estimated
+
+    details:
+    - ...
+
+    randomization:
+    - speed
+    - direction
+    - checkerboard starting position
+    - checkerboard size
+    - random noise
+    """
+
+    data, labels = [], []
+    for _ in range(size):
+        x, y = fov_2d_speed_checkerboard_sample(side, length, max_seg_length, pattern_speeds)
+        data.append(x)
+        labels.append(y / pattern_speed_scale)
+    return data, labels

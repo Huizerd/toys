@@ -28,4 +28,4 @@ def plot_2d_dataset(data):
         cv2.namedWindow("samples", cv2.WINDOW_NORMAL)
         cv2.resizeWindow("samples", 800, 800)
         cv2.imshow("samples", grid.permute(1, 2, 0).numpy())
-        cv2.waitKey(1)  # make_grid takes long enough already
+        cv2.waitKey(100)
